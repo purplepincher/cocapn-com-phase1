@@ -1,14 +1,982 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Deck‑Lights / Engine‑Room Provisioning – Simulation</title>
-  <link rel="stylesheet" href="./family/tokens.css" />
-  <link rel="stylesheet" href="./family/base.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cocapn · Phase 1 · capability-provisioning walkthrough</title>
+
+  <!--
+    Fonts are static assets (NOT model-provider calls; SPEC done-criteria #1
+    only forbids LLM/model-provider origins). Loaded from Google Fonts for
+    visual fidelity to the family type system; the fallback stacks in
+    tokens.css cover offline/file:// opens.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* =====================================================================
+       family/tokens.css  (inlined verbatim — family build-time-inline pattern)
+       ===================================================================== */
+    :root {
+      /* --- ground palette + type system (verbatim from landing.html) --- */
+      --ink: #0E1A1C;
+      --ink-deep: #081113;
+      --shell: #F0E9D8;
+      --shell-dim: #C9C0AB;
+      --claw: #A8548C;
+      --claw-deep: #7A3B5E;
+      --lattice: #5FB4C7;
+      --lattice-dim: #3F8FA3;
+      --hardened: #D98B54;
+      --line: rgba(240, 233, 216, 0.14);
+      --display: "Fraunces", Georgia, serif;
+      --body: "IBM Plex Sans", -apple-system, sans-serif;
+      --mono: "IBM Plex Mono", "SF Mono", monospace;
+
+      --antifoul: #B0533A;
+      --depth: #1F4A5C;
+      --reef: #D97A5C;
+    }
+
+    /* cocapn.com accent swap: --depth (the water under the hull).
+       This is the one accent change the family makes per site; every
+       var(--claw) reference below now resolves to --depth, matching the
+       state-machine demo's accent choice (the brief's alignment point). */
+    :root { --claw: var(--depth); }
+
+    /* =====================================================================
+       family/base.css  (inlined verbatim)
+       ===================================================================== */
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--ink);
+      color: var(--shell);
+      font-family: var(--body);
+      font-size: 17px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: var(--lattice); }
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--lattice);
+      outline-offset: 3px;
+    }
+    ::selection { background: var(--claw); color: var(--shell); }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 28px; }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--lattice);
+      margin: 0 0 22px;
+      position: relative;
+    }
+
+    .demo-card {
+      position: relative;
+      margin-top: 36px;
+      background: rgba(8, 17, 19, 0.55);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 1fr 260px;
+      gap: 28px;
+      align-items: stretch;
+    }
+    @media (max-width: 680px) {
+      .demo-card { grid-template-columns: 1fr; }
+    }
+
+    /* =====================================================================
+       family/provenance-panel.css  (inlined verbatim)
+       ===================================================================== */
+    .provenance-status {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;
+      padding: 10px 28px;
+      background: var(--ink-deep);
+      border-bottom: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--shell-dim);
+    }
+    .provenance-status__word {
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--claw); white-space: nowrap;
+    }
+    .provenance-status__text { flex: 1 1 auto; max-width: 70ch; }
+    @media (max-width: 620px) {
+      .provenance-status { padding: 10px 18px; font-size: 11.5px; }
+    }
+    .provenance {
+      display: inline-block;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+      color: var(--lattice-dim);
+      background: rgba(95, 180, 199, 0.08);
+      border: 1px solid var(--line);
+      padding: 2px 8px; border-radius: 4px;
+      vertical-align: middle; margin-left: 8px;
+    }
+    .provenance--block {
+      display: block; margin: 14px 0 0;
+      background: transparent; border: 0; padding: 0;
+      font-size: 12.5px; color: var(--shell-dim);
+    }
+
+    /* =====================================================================
+       Site CSS — this demo's signature surface (conversation + ActiveLog).
+       Built on the family .demo-card shell. All colors via family tokens.
+       ===================================================================== */
+
+    header.page-head { padding: 40px 0 4px; }
+    header.page-head h1 {
+      font-family: var(--display);
+      font-weight: 500;
+      font-size: 2.1rem;
+      line-height: 1.15;
+      margin: 0 0 10px;
+      color: var(--shell);
+    }
+    header.page-head p.lede {
+      font-size: 1.02rem;
+      color: var(--shell-dim);
+      max-width: 62ch;
+      margin: 0;
+    }
+
+    /* the demo-card interior is a primary conversation area + ActiveLog rail.
+       We keep the family's 1fr 260px grid (the alignment point with the
+       sibling command-loop demo, which uses the same family shell). */
+    .prov-primary { min-width: 0; }
+    .prov-log {
+      display: flex; flex-direction: column;
+      min-width: 0;
+      border-left: 1px solid var(--line);
+      padding-left: 22px;
+      margin-left: -4px;
+    }
+    @media (max-width: 680px) {
+      .prov-log { border-left: 0; padding-left: 0; margin-left: 0;
+                  border-top: 1px solid var(--line); padding-top: 18px; }
+    }
+
+    /* breadcrumb — scene + current node id */
+    .conv-breadcrumb {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--lattice-dim); letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+    .conv-breadcrumb b { color: var(--claw); font-weight: 500; }
+    .conv-breadcrumb button {
+      appearance: none; background: none; border: 0; padding: 0;
+      font: inherit; font-family: var(--mono); font-size: 11px;
+      color: var(--lattice); cursor: pointer; text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .conv-breadcrumb button:hover { color: var(--shell); }
+
+    /* ---- conversation transcript ---- */
+    .conv { display: flex; flex-direction: column; gap: 2px; }
+    .conv-turn { padding: 10px 0 12px 14px; border-left: 2px solid var(--line); }
+    .conv-turn--cocapn  { border-left-color: var(--claw); }
+    .conv-turn--captain { border-left-color: var(--lattice-dim); }
+    .conv-speaker {
+      display: block;
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--lattice-dim); margin-bottom: 6px;
+    }
+    .conv-turn--cocapn .conv-speaker { color: var(--claw); }
+    .conv-text {
+      margin: 0 0 10px;
+      font-size: 0.985rem; line-height: 1.62; color: var(--shell);
+    }
+    .conv-text:last-child { margin-bottom: 0; }
+    .conv-turn--captain .conv-text {
+      color: var(--shell-dim);
+      font-family: var(--display); font-style: italic; font-weight: 400;
+    }
+    .conv code {
+      font-family: var(--mono); font-size: 0.85em;
+      background: rgba(95, 180, 199, 0.10);
+      border: 1px solid var(--line);
+      padding: 0 5px; border-radius: 3px; color: var(--lattice);
+    }
+
+    /* ---- choices ---- */
+    .conv-choices {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-top: 16px;
+    }
+    .conv-choice {
+      appearance: none;
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 14px; width: 100%; text-align: left;
+      font: inherit; font-size: 0.955rem; line-height: 1.45;
+      color: var(--shell);
+      background: rgba(31, 74, 92, 0.10);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 14px;
+      cursor: pointer;
+      transition: border-color .12s ease, background .12s ease, transform .08s ease;
+    }
+    .conv-choice:hover  { border-color: var(--claw); background: rgba(31, 74, 92, 0.24); }
+    .conv-choice:active { transform: translateY(1px); }
+    .conv-choice::after {
+      content: "→"; flex: none;
+      font-family: var(--mono); color: var(--claw); opacity: 0.75;
+    }
+    .conv-choice[disabled], .conv-choice[aria-disabled="true"] {
+      cursor: default; opacity: 0.46;
+    }
+    .conv-choice[disabled]:hover, .conv-choice[aria-disabled="true"]:hover {
+      border-color: var(--line); background: rgba(31, 74, 92, 0.10);
+    }
+    .conv-choice.picked {
+      opacity: 1; border-color: var(--claw);
+      background: rgba(31, 74, 92, 0.20);
+    }
+    .conv-choice.picked::after { content: "✓"; opacity: 0.9; }
+    .conv-choice.picked > span:first-child { color: var(--shell); }
+
+    /* ---- artifacts ---- */
+    .artifact { margin: 14px 0 4px; }
+    .artifact-label {
+      display: block;
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.06em; color: var(--lattice-dim);
+      margin-bottom: 7px;
+    }
+    .artifact pre {
+      margin: 0;
+      font-family: var(--mono); font-size: 12px; line-height: 1.55;
+      color: var(--shell-dim);
+      background: var(--ink-deep);
+      border: 1px solid var(--line);
+      border-left: 2px solid var(--claw);
+      border-radius: 8px;
+      padding: 12px 14px;
+      white-space: pre-wrap; word-break: break-word;
+      overflow-x: auto;
+    }
+
+    /* engine-room frame mock */
+    .engine-frame {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background:
+        radial-gradient(120% 90% at 30% 20%, #0c1f1c 0%, #07120f 55%, #050d0c 100%);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .engine-frame::before { /* faint scanlines to read as a camera feed */
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom, rgba(255,255,255,0.018) 0 2px, transparent 2px 4px);
+      mix-blend-mode: screen;
+    }
+    .engine-frame__bar {
+      position: absolute; top: 8px; left: 10px; right: 10px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--mono); font-size: 10px;
+      color: var(--lattice-dim); letter-spacing: 0.04em;
+    }
+    .engine-frame__rec { display: inline-flex; align-items: center; gap: 6px; color: var(--hardened); }
+    .engine-frame__rec::before {
+      content: ""; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--hardened); box-shadow: 0 0 6px var(--hardened);
+    }
+    .engine-frame__gauges {
+      position: absolute; left: 12px; right: 12px; bottom: 12px;
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 18px;
+    }
+    .gauge {
+      font-family: var(--mono); font-size: 11.5px;
+      color: var(--shell-dim);
+      display: flex; gap: 8px; align-items: baseline;
+    }
+    .gauge > span { color: var(--lattice-dim); min-width: 92px; }
+    .gauge > b { color: var(--shell); font-weight: 500; }
+    .gauge > small { color: var(--shell-dim); opacity: 0.75; font-size: 10.5px; }
+    .gauge--flag > b { color: var(--hardened); }
+
+    /* sonar map mock */
+    .sonar-map__svg { width: 100%; height: auto; display: block;
+      background: var(--ink-deep); border: 1px solid var(--line); border-radius: 8px; }
+    .sonar-map__honesty {
+      font-family: var(--mono); font-size: 11px; color: var(--lattice-dim);
+      margin-top: 8px; letter-spacing: 0.02em;
+    }
+
+    /* ---- integration hand-off panel ---- */
+    .prov-integ {
+      border: 1px solid var(--hardened);
+      border-left-width: 3px;
+      background: rgba(217, 139, 84, 0.06);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin: 14px 0 4px;
+    }
+    .prov-integ__label {
+      display: block;
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--hardened); margin-bottom: 8px;
+    }
+    .prov-integ p {
+      margin: 0 0 10px;
+      font-size: 0.93rem; line-height: 1.55; color: var(--shell);
+    }
+    .prov-integ p:last-of-type { margin-bottom: 0; }
+    .prov-integ code {
+      font-family: var(--mono); font-size: 0.82em; color: var(--lattice);
+      background: rgba(95, 180, 199, 0.10); padding: 0 5px; border-radius: 3px;
+    }
+    .prov-integ__actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-flat {
+      appearance: none; font: inherit; font-size: 0.9rem;
+      color: var(--shell); background: transparent;
+      border: 1px solid var(--line); border-radius: 7px;
+      padding: 8px 14px; cursor: pointer;
+      transition: border-color .12s, background .12s;
+    }
+    .btn-flat:hover { border-color: var(--claw); background: rgba(31,74,92,0.16); }
+
+    /* ---- start hub ---- */
+    .prov-start { padding: 6px 0 4px; }
+    .prov-start__intro {
+      color: var(--shell-dim); font-size: 0.97rem; max-width: 56ch;
+      margin: 0 0 18px;
+    }
+    .prov-start__scenes {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    }
+    @media (max-width: 560px) { .prov-start__scenes { grid-template-columns: 1fr; } }
+    .scene-card {
+      appearance: none; text-align: left;
+      font: inherit; color: var(--shell);
+      background: rgba(31, 74, 92, 0.08);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 18px 18px 16px;
+      cursor: pointer;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: border-color .12s, background .12s, transform .08s;
+    }
+    .scene-card:hover  { border-color: var(--claw); background: rgba(31, 74, 92, 0.20); }
+    .scene-card:active { transform: translateY(1px); }
+    .scene-card__eyebrow {
+      font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--lattice-dim);
+    }
+    .scene-card__title {
+      font-family: var(--display); font-weight: 500; font-size: 1.18rem;
+      line-height: 1.2; color: var(--shell);
+    }
+    .scene-card__blurb {
+      font-size: 0.9rem; line-height: 1.5; color: var(--shell-dim); margin: 0;
+    }
+    .scene-card__cta {
+      margin-top: 4px;
+      font-family: var(--mono); font-size: 11px; color: var(--claw);
+      letter-spacing: 0.04em;
+    }
+
+    /* ---- ActiveLog rail ---- */
+    .prov-log-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 8px;
+      font-family: var(--mono); font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--lattice-dim);
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px; margin-bottom: 10px;
+    }
+    .prov-log-count { color: var(--shell-dim); text-transform: none; letter-spacing: 0; }
+    .prov-log-clear {
+      appearance: none; background: none; border: 0; padding: 0;
+      font: inherit; font-family: var(--mono); font-size: 10.5px;
+      color: var(--lattice); cursor: pointer; text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .prov-log-clear:hover { color: var(--shell); }
+    .prov-log-list {
+      display: flex; flex-direction: column; gap: 6px;
+      max-height: 560px; overflow-y: auto;
+    }
+    .prov-log-empty {
+      font-family: var(--mono); font-size: 11.5px;
+      color: var(--shell-dim); opacity: 0.6;
+    }
+    .log-row {
+      border: 1px solid var(--line); border-radius: 6px;
+      background: rgba(8, 17, 19, 0.4); overflow: hidden;
+    }
+    .log-row__head {
+      display: flex; align-items: baseline; gap: 7px;
+      padding: 7px 9px; cursor: pointer;
+      font-family: var(--mono); font-size: 10.5px; line-height: 1.35;
+    }
+    .log-row__dev  { color: var(--lattice-dim); flex: none; }
+    .log-row__seq  { color: var(--shell-dim); opacity: 0.65; flex: none; }
+    .log-row__type { color: var(--claw); flex: none; }
+    .log-row__sum  { color: var(--shell-dim); flex: 1; min-width: 0;
+                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .log-row__exp  { color: var(--lattice-dim); opacity: 0.7; flex: none; }
+    .log-row__exp::before { content: "▸"; }
+    .log-row.open .log-row__exp::before { content: "▾"; }
+    .log-row__body { display: none; padding: 0 9px 9px; }
+    .log-row.open .log-row__body { display: block; }
+    .log-row pre {
+      margin: 0;
+      font-family: var(--mono); font-size: 10.3px; line-height: 1.45;
+      color: var(--shell-dim);
+      white-space: pre-wrap; word-break: break-word;
+      border-top: 1px solid var(--line); padding-top: 8px;
+    }
+
+    footer.page-foot {
+      margin: 48px 0 64px; padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-size: 0.88rem; color: var(--shell-dim);
+    }
+    footer.page-foot code {
+      font-family: var(--mono); font-size: 0.82em; color: var(--lattice);
+      background: rgba(95,180,199,0.10); padding: 0 5px; border-radius: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .conv-choice, .scene-card, .btn-flat { transition: none; }
+    }
+  </style>
 </head>
+
 <body>
-  <div class="simulation-banner">SIMULATION – No LLM in the loop</div>
-  <div id="app"></div>
-  <script src="./provisioning-demo.js"></script>
+
+  <!-- =====================================================================
+       Honesty stack — persistent status line (family provenance panel).
+       One of three mechanisms (SPEC done-criteria #7): page-level banner.
+       ===================================================================== -->
+  <aside class="provenance-status" role="status" aria-live="polite">
+    <span class="provenance-status__word">simulation</span>
+    <span class="provenance-status__text">
+      Phase 1 provisioning walkthrough — a deterministic decision tree. Every
+      node and line is pre-written; nothing is generated. No LLM is in the path,
+      no hardware is connected, and the vessel it describes is unbuilt.
+    </span>
+  </aside>
+
+  <main class="wrap">
+
+    <header class="page-head">
+      <p class="eyebrow">cocapn · Phase 1 · capability provisioning</p>
+      <h1>Provision a capability, then hand the helm to the loop.</h1>
+      <p class="lede">
+        Two bounded scenes from kimi&rsquo;s script: draft a lighting profile by
+        voice, and read the engine room before deciding where to drive. Pick a
+        scene, follow the buttons &mdash; every choice is pre-authored, and every
+        event the tree emits lands in the ActiveLog on the right, in the real
+        envelope shape.
+      </p>
+    </header>
+
+    <!-- The family .demo-card shell: primary conversation area + ActiveLog rail. -->
+    <section class="demo-card provisioning-demo" aria-label="Provisioning walkthrough">
+
+      <div class="prov-primary">
+        <div class="conv-breadcrumb" id="breadcrumb"></div>
+        <div class="conv" id="conv" role="region" aria-live="polite" aria-label="conversation"></div>
+      </div>
+
+      <aside class="prov-log" aria-label="ActiveLog">
+        <div class="prov-log-head">
+          <span>ActiveLog <span class="prov-log-count" id="log-count"></span></span>
+          <button class="prov-log-clear" id="log-clear" type="button">clear</button>
+        </div>
+        <div class="prov-log-list" id="log-list">
+          <p class="prov-log-empty" id="log-empty">no events yet &mdash; start a scene.</p>
+        </div>
+      </aside>
+
+    </section>
+
+    <!-- Per-element provenance note: the mechanics of the surface above. -->
+    <p class="provenance provenance--block">
+      Deterministic decision tree. All cocapn text is verbatim from
+      <code>PROVISIONING_DIALOGUE_FULL.md</code>; emitted events match the shapes
+      in <code>SPEC_fable_phase1.md</code> §3. No free-text input, no model call.
+      The command-loop FSM this tree hands off to is a separate, parallel build.
+    </p>
+
+    <footer class="page-foot">
+      <p>
+        Integration note &mdash; the provisioning tree&rsquo;s single outbound exit
+        (DL-5&rsquo;s &ldquo;Continue to: turn the boat&rdquo;) and the camera
+        scene&rsquo;s exits (&ldquo;End here&rdquo; / &ldquo;Return to demo&rdquo;)
+        hand off to the command-and-confirm state machine living at
+        <code>../cocapn-phase1-build/</code>. That sibling build was not consulted
+        per the brief; the hand-offs are surfaced as integration panels rather
+        than silently dropped.
+      </p>
+    </footer>
+
+  </main>
+
+  <!-- Pure data + deterministic engine. Classic script (not a module) so the
+       page opens from file:// without a server or build step. -->
+  <script src="provisioning-tree.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var T = window.ProvisioningTree;
+    if (!T) {
+      document.getElementById("conv").textContent =
+        "ERROR: provisioning-tree.js failed to load.";
+      return;
+    }
+
+    // ---- DOM refs ----
+    var conv = document.getElementById("conv");
+    var breadcrumb = document.getElementById("breadcrumb");
+    var logList = document.getElementById("log-list");
+    var logEmpty = document.getElementById("log-empty");
+    var logCount = document.getElementById("log-count");
+    document.getElementById("log-clear").addEventListener("click", function () {
+      T.log.reset();
+      renderLog();
+    });
+
+    // ---- session state ----
+    // transcript: ordered list of rendered turns. Each is one of:
+    //   { kind:"captain", text }
+    //   { kind:"cocapn", nodeId, picked }   // picked = index of chosen choice, or null
+    //   { kind:"integration", integration } // integration = "command" | "idle"
+    var state = { scene: null, currentId: null, transcript: [] };
+
+    // ---- small DOM helpers ----
+    function el(tag, cls, html) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (html != null) e.innerHTML = html;
+      return e;
+    }
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+    // Escape, then turn `...` runs into <code>...</code> (DL-4 uses backticks).
+    function inlineCodes(s) {
+      return escapeHtml(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+    }
+
+    // =========================================================
+    // ActiveLog rendering
+    // =========================================================
+    function summarize(env) {
+      var b = env.body || {};
+      switch (env.type) {
+        case "chat.exchange":
+          return (b.role === "human" ? "captain: " : "cocapn: ") + (b.text || "");
+        case "helm.profile":
+          return "profile saved: " + b.profile + " · " + b.channels + "ch · fail=" + b.fail_state;
+        case "media.frame":
+          return "frame " + (b.uri || "") + " · " + trunc(b.description, 54);
+        case "helm.command":
+          return (b.action || "?") + " (" + (b.class || "?") + ") → " + (b.result || "?");
+        case "helm.event":
+          return b.event_type || "";
+        case "fix.track":
+          return "fix updated";
+        default:
+          return "";
+      }
+    }
+    function trunc(s, n) {
+      s = String(s || "");
+      return s.length > n ? s.slice(0, n - 1) + "…" : s;
+    }
+    function renderLog() {
+      var events = T.log.events;
+      logCount.textContent = events.length ? (events.length + " event" + (events.length === 1 ? "" : "s")) : "";
+      if (!events.length) {
+        logList.innerHTML = "";
+        logList.appendChild(el("p", "prov-log-empty", "no events yet &mdash; start a scene."));
+        return;
+      }
+      // Rebuild only new rows; keep it simple & correct for a prototype.
+      logList.innerHTML = "";
+      for (var i = 0; i < events.length; i++) {
+        var env = events[i];
+        var row = el("div", "log-row");
+        var head = el("div", "log-row__head");
+        head.appendChild(el("span", "log-row__dev", env.dev));
+        head.appendChild(el("span", "log-row__seq", "#" + env.seq));
+        head.appendChild(el("span", "log-row__type", env.type));
+        head.appendChild(el("span", "log-row__sum", escapeHtml(summarize(env))));
+        head.appendChild(el("span", "log-row__exp"));
+        (function (row) {
+          head.addEventListener("click", function () { row.classList.toggle("open"); });
+        })(row);
+        row.appendChild(head);
+        row.appendChild(el("div", "log-row__body",
+          "<pre>" + escapeHtml(JSON.stringify(env, null, 2)) + "</pre>"));
+        logList.appendChild(row);
+      }
+      // scroll the latest into view
+      logList.scrollTop = logList.scrollHeight;
+    }
+
+    // =========================================================
+    // Artifact rendering
+    // =========================================================
+    function renderArtifact(art) {
+      var wrap = el("div", "artifact");
+      switch (art.kind) {
+        case "profile-card":
+          wrap.appendChild(el("span", "artifact-label", escapeHtml(art.label)));
+          wrap.appendChild(el("pre", null,
+            escapeHtml(JSON.stringify(art.data, null, 2))));
+          break;
+        case "engine-frame":
+          wrap.appendChild(renderEngineFrame(art));
+          break;
+        case "sonar-map":
+          wrap.appendChild(renderSonarMap(art));
+          break;
+      }
+      return wrap;
+    }
+
+    function renderEngineFrame(art) {
+      var d = art.data;
+      var f = el("div", "engine-frame");
+      f.setAttribute("role", "img");
+      f.setAttribute("aria-label", "Simulated engine-room frame: " + (d.description || ""));
+      var bar = el("div", "engine-frame__bar");
+      bar.appendChild(el("span", "engine-frame__src", escapeHtml(d.uri || "")));
+      bar.appendChild(el("span", "engine-frame__rec", "sim · live"));
+      f.appendChild(bar);
+      var gs = el("div", "engine-frame__gauges");
+      (d.gauges || []).forEach(function (g) {
+        var row = el("div", "gauge" + (g.flag ? " gauge--flag" : ""));
+        row.innerHTML =
+          "<span>" + escapeHtml(g.label) + "</span>" +
+          "<b>" + escapeHtml(g.value) + "</b>" +
+          (g.note ? "<small>" + escapeHtml(g.note) + "</small>" : "");
+        gs.appendChild(row);
+      });
+      f.appendChild(gs);
+      // wrap with the artifact label (the sim:// uri) above
+      var outer = el("div");
+      outer.appendChild(el("span", "artifact-label",
+        escapeHtml(art.label) + " · simulated engine-room still"));
+      outer.appendChild(f);
+      return outer;
+    }
+
+    function renderSonarMap(art) {
+      var outer = el("div");
+      // Schematic SVG: vessel at center, bearing line to 142°T, pinnacle mark,
+      // school cluster offset EAST (drifting east of the mark, per cocapn's line).
+      // Pure presentation — the sonar math itself is the real repo's lineage.
+      var svg =
+        '<svg class="sonar-map__svg" viewBox="0 0 320 200" role="img"' +
+        ' aria-label="Schematic sonar map: pinnacle at 142 true, 1.2 nm; school drifting east.">' +
+        '<defs>' +
+          '<radialGradient id="sm-sweep" cx="50%" cy="50%" r="50%">' +
+            '<stop offset="0%" stop-color="#13333f" stop-opacity="0.9"/>' +
+            '<stop offset="70%" stop-color="#0a1c22" stop-opacity="0.6"/>' +
+            '<stop offset="100%" stop-color="#081113" stop-opacity="0"/>' +
+          '</radialGradient>' +
+        '</defs>' +
+        '<rect x="0" y="0" width="320" height="200" fill="#081113"/>' +
+        '<circle cx="160" cy="110" r="92" fill="url(#sm-sweep)"/>' +
+        '<circle cx="160" cy="110" r="92" fill="none" stroke="rgba(95,180,199,0.18)"/>' +
+        '<circle cx="160" cy="110" r="60" fill="none" stroke="rgba(95,180,199,0.10)"/>' +
+        '<circle cx="160" cy="110" r="30" fill="none" stroke="rgba(95,180,199,0.10)"/>' +
+        // bearing line to 142°T (up = north). 142° from north → dx=+sin142, dy=−cos142.
+        '<line x1="160" y1="110" x2="258" y2="153" stroke="rgba(217,139,84,0.7)" stroke-width="1.2"/>' +
+        // pinnacle mark at the end of the bearing line
+        '<g transform="translate(258,153)">' +
+          '<path d="M0,-7 L0,7 M-7,0 L7,0" stroke="#D98B54" stroke-width="1.6"/>' +
+          '<circle r="9" fill="none" stroke="rgba(217,139,84,0.5)"/>' +
+        '</g>' +
+        '<text x="266" y="150" font-family="IBM Plex Mono, monospace" font-size="9" fill="#D98B54">pinnacle 142°T · 1.2nm</text>' +
+        // school cluster — offset EAST of the mark (drift)
+        '<g transform="translate(252,142)" fill="#5FB4C7">' +
+          '<circle cx="0" cy="0" r="3.2"/>' +
+          '<circle cx="6" cy="-2" r="2.6"/>' +
+          '<circle cx="-3" cy="5" r="2.4"/>' +
+          '<circle cx="9" cy="3" r="2.2"/>' +
+          '<circle cx="13" cy="-1" r="1.9"/>' +
+        '</g>' +
+        '<text x="196" y="134" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5FB4C7">school · 80 fm → drifting E</text>' +
+        // own vessel (center)
+        '<g transform="translate(160,110)">' +
+          '<path d="M0,-7 L5,6 L0,3 L-5,6 Z" fill="#F0E9D8"/>' +
+        '</g>' +
+        '<text x="150" y="98" font-family="IBM Plex Mono, monospace" font-size="9" fill="rgba(240,233,216,0.7)">you</text>' +
+        // compass
+        '<text x="156" y="20" font-family="IBM Plex Mono, monospace" font-size="9" fill="rgba(95,180,199,0.7)">N</text>' +
+      '</svg>';
+      outer.innerHTML =
+        '<span class="artifact-label">sonar map · schematic (real repo, real math)</span>' +
+        svg +
+        '<div class="sonar-map__honesty">' + escapeHtml(art.label) + '</div>';
+      return outer;
+    }
+
+    // =========================================================
+    // Conversation turn rendering
+    // =========================================================
+    function renderCaptainTurn(t) {
+      var turn = el("div", "conv-turn conv-turn--captain");
+      turn.appendChild(el("span", "conv-speaker", "captain"));
+      turn.appendChild(el("p", "conv-text", inlineCodes(t.text)));
+      return turn;
+    }
+
+    function renderCocapnTurn(t, isActive) {
+      var node = T.node(t.nodeId);
+      var turn = el("div", "conv-turn conv-turn--cocapn");
+      turn.appendChild(el("span", "conv-speaker", "cocapn · " + node.id));
+      node.cocapnText.forEach(function (p) {
+        turn.appendChild(el("p", "conv-text", inlineCodes(p)));
+      });
+      (node.artifacts || []).forEach(function (a) {
+        turn.appendChild(renderArtifact(a));
+      });
+
+      // choices
+      if (node.choices && node.choices.length) {
+        var c = el("div", "conv-choices");
+        node.choices.forEach(function (choice, idx) {
+          var b = document.createElement("button");
+          b.className = "conv-choice";
+          b.type = "button";
+          b.innerHTML = "<span>" + inlineCodes(choice.label) + "</span>";
+          if (t.picked !== null && t.picked !== undefined) {
+            // already answered — disable everything, highlight the picked one
+            b.disabled = true;
+            if (t.picked === idx) b.classList.add("picked");
+          } else if (!isActive) {
+            b.disabled = true;
+          } else {
+            b.addEventListener("click", makeChooseHandler(t, idx, choice));
+          }
+          c.appendChild(b);
+        });
+        turn.appendChild(c);
+      }
+      return turn;
+    }
+
+    function renderIntegrationTurn(t) {
+      var info = INTEGRATIONS[t.integration];
+      var turn = el("div", "conv-turn conv-turn--cocapn");
+      turn.appendChild(el("span", "conv-speaker", "cocapn · hand-off"));
+      var panel = el("div", "prov-integ");
+      panel.appendChild(el("span", "prov-integ__label", info.label));
+      info.body.forEach(function (p) { panel.appendChild(el("p", null, p)); });
+      var actions = el("div", "prov-integ__actions");
+      var back = el("button", "btn-flat", "← Back to start");
+      back.type = "button";
+      back.addEventListener("click", goStart);
+      actions.appendChild(back);
+      panel.appendChild(actions);
+      turn.appendChild(panel);
+      return turn;
+    }
+
+    var INTEGRATIONS = {
+      command: {
+        label: "Integration point · provisioning → command loop",
+        body: [
+          "This is where the provisioning tree hands off to the command-and-confirm state machine (the &ldquo;turn 10 degrees / belay&rdquo; demo). Once this profile is saved, " +
+          "<code>deck_red</code> / <code>deck_white</code> / <code>lights_off</code> become live C2 phrases in that demo&rsquo;s grammar &mdash; the one place the two halves of Phase 1 connect state.",
+          "That demo is being built in parallel at <code>../cocapn-phase1-build/</code> and is not wired into this prototype, so the hand-off is shown rather than executed. The saved <code>helm.profile</code> event is in this session&rsquo;s ActiveLog.",
+        ],
+        console: "[cocapn provisioning] DL-5 → command-loop demo hand-off " +
+                 "(parallel build, not wired here). Profile lighting-relay-2ch saved; " +
+                 "deck_red/deck_white/lights_off would go live in the command grammar.",
+      },
+      idle: {
+        label: "Integration point · return to IDLE",
+        body: [
+          "This exits to the command-loop demo&rsquo;s <code>IDLE</code> state (the &ldquo;turn the boat&rdquo; surface, built in parallel at <code>../cocapn-phase1-build/</code>). In the full Phase 1 build the camera/fishery scene is reachable from <code>IDLE</code>.",
+          "Not wired into this prototype, so the return is shown rather than executed.",
+        ],
+        console: "[cocapn provisioning] CAM → command-loop IDLE hand-off " +
+                 "(parallel build, not wired here).",
+      },
+    };
+
+    // =========================================================
+    // Flow
+    // =========================================================
+    function makeChooseHandler(turn, idx, choice) {
+      return function () { choose(turn, idx, choice); };
+    }
+
+    function choose(turn, idx, choice) {
+      turn.picked = idx;
+      if (!choice.silent) {
+        var utt = choice.utterance != null ? choice.utterance : choice.label;
+        state.transcript.push({ kind: "captain", text: utt });
+      }
+      var target = choice.target;
+      if (!T.isControlTarget(target)) {
+        enterNode(target);
+      } else if (target === T.TARGET.START) {
+        goStart();
+      } else if (target === T.TARGET.INTEGRATION_COMMAND) {
+        showIntegration("command");
+      } else if (target === T.TARGET.INTEGRATION_IDLE) {
+        showIntegration("idle");
+      }
+      render();
+    }
+
+    function enterNode(nodeId) {
+      var node = T.node(nodeId);
+      state.currentId = nodeId;
+      // Entry nodes show their fixed captain prompt first.
+      if (node.captainPrompt) {
+        state.transcript.push({ kind: "captain", text: node.captainPrompt });
+      }
+      // Emit any ActiveLog events (verbatim shapes from the tree) on entry.
+      (node.emit || []).forEach(function (e) {
+        T.log.emit(e.type, e.body);
+      });
+      state.transcript.push({ kind: "cocapn", nodeId: nodeId, picked: null });
+    }
+
+    function showIntegration(kind) {
+      state.currentId = null;
+      state.transcript.push({ kind: "integration", integration: kind });
+      // Surface the hand-off loudly, per the brief — never silently dropped.
+      if (window.console && INTEGRATIONS[kind]) {
+        console.log(INTEGRATIONS[kind].console);
+      }
+    }
+
+    function startScene(key) {
+      var scene = T.SCENES[key];
+      if (!scene) return;
+      state.scene = key;
+      state.transcript = [];
+      enterNode(scene.entry);
+      render();
+      // scroll the card into view on small screens
+      var card = document.querySelector(".demo-card");
+      if (card && card.scrollIntoView) card.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function goStart() {
+      state.scene = null;
+      state.currentId = null;
+      state.transcript = [];
+      render();
+    }
+
+    // =========================================================
+    // Top-level render
+    // =========================================================
+    function renderBreadcrumb() {
+      breadcrumb.innerHTML = "";
+      if (!state.scene) {
+        breadcrumb.innerHTML =
+          "<span><b>cocapn</b> · provisioning tree</span>";
+        return;
+      }
+      var scene = T.SCENES[state.scene];
+      var left =
+        "<span><b>cocapn</b> · " + escapeHtml(scene.title) +
+        (state.currentId ? " · <b>" + escapeHtml(state.currentId) + "</b>" : "") +
+        "</span>";
+      var restart = document.createElement("button");
+      restart.type = "button";
+      restart.textContent = "↺ restart scene";
+      restart.addEventListener("click", function () { startScene(state.scene); });
+      breadcrumb.innerHTML = left;
+      breadcrumb.appendChild(restart);
+    }
+
+    function renderStart() {
+      conv.innerHTML = "";
+      var wrap = el("div", "prov-start");
+      wrap.appendChild(el("p", "prov-start__intro",
+        "Two pre-authored scenes. Each is a fixed graph of nodes &mdash; you pick " +
+        "from labeled buttons, never type free text. Every event the tree emits " +
+        "appears in the ActiveLog as it happens."));
+      var grid = el("div", "prov-start__scenes");
+      Object.keys(T.SCENES).forEach(function (key) {
+        var s = T.SCENES[key];
+        var card = document.createElement("button");
+        card.className = "scene-card";
+        card.type = "button";
+        card.innerHTML =
+          '<span class="scene-card__eyebrow">' + escapeHtml(s.eyebrow) + '</span>' +
+          '<span class="scene-card__title">' + escapeHtml(s.title) + '</span>' +
+          '<span class="scene-card__blurb">' + escapeHtml(s.blurb) + '</span>' +
+          '<span class="scene-card__cta">start →</span>';
+        card.addEventListener("click", function () { startScene(s.key); });
+        grid.appendChild(card);
+      });
+      wrap.appendChild(grid);
+      conv.appendChild(wrap);
+    }
+
+    function renderTranscript() {
+      conv.innerHTML = "";
+      for (var i = 0; i < state.transcript.length; i++) {
+        var t = state.transcript[i];
+        if (t.kind === "captain") {
+          conv.appendChild(renderCaptainTurn(t));
+        } else if (t.kind === "cocapn") {
+          // Only the LAST cocapn turn with no pick is "active".
+          var isActive = (i === state.transcript.length - 1) && t.picked === null;
+          conv.appendChild(renderCocapnTurn(t, isActive));
+        } else if (t.kind === "integration") {
+          conv.appendChild(renderIntegrationTurn(t));
+        }
+      }
+    }
+
+    function render() {
+      renderBreadcrumb();
+      if (!state.scene) {
+        renderStart();
+      } else {
+        renderTranscript();
+      }
+      renderLog();
+    }
+
+    // ---- boot ----
+    render();
+    if (window.console) {
+      console.log("[cocapn provisioning] ready — 12 nodes, 2 scenes. " +
+                  "Hand-off points to ../cocapn-phase1-build/ are surfaced as panels.");
+    }
+  })();
+  </script>
+
 </body>
 </html>

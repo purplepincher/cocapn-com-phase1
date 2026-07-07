@@ -1,31 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>cocapn.com – Phase 1</title>
-  <link rel="stylesheet" href="/family/tokens.css" />
-  <link rel="stylesheet" href="/family/base.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>cocapn.com · Phase 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/family/tokens.css" />
+<link rel="stylesheet" href="/family/base.css" />
+<style>
+  :root { --claw: var(--depth); }
+
+  .hero { padding: 72px 0 8px; }
+  .hero h1 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(2.1rem, 5vw, 3.2rem);
+    line-height: 1.08;
+    margin: 0 0 20px;
+    max-width: 14ch;
+  }
+  .hero-sub { font-size: 1.08rem; color: var(--shell-dim); max-width: 62ch; margin: 0 0 32px; }
+  .hero-image {
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    display: block;
+    margin: 0 0 40px;
+  }
+
+  .honesty-block {
+    background: rgba(31, 74, 92, 0.16);
+    border: 1px solid var(--depth);
+    border-radius: 14px;
+    padding: 24px 26px;
+    margin: 40px 0 8px;
+  }
+  .honesty-block .eyebrow { color: var(--depth); }
+  .honesty-block p { margin: 0; font-size: 0.98rem; color: var(--shell); }
+
+  .demos { margin-top: 56px; }
+  .demo-list { display: grid; gap: 20px; margin-top: 24px; }
+  .demo-entry {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    background: rgba(8, 17, 19, 0.4);
+  }
+  .demo-entry h3 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 1.2rem;
+    margin: 0 0 4px;
+  }
+  .demo-entry .kicker { font-family: var(--mono); font-size: 0.8rem; color: var(--depth); }
+  .demo-entry p { color: var(--shell-dim); margin: 10px 0 18px; }
+  .demo-entry a.enter {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--shell);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 16px;
+    text-decoration: none;
+  }
+  .demo-entry a.enter:hover { border-color: var(--depth); color: var(--depth); }
+
+  .closing { margin: 64px 0 80px; padding-top: 28px; border-top: 1px solid var(--line); color: var(--shell-dim); font-size: 0.95rem; max-width: 62ch; }
+
+  .provenance-status {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; gap: 10px; align-items: baseline;
+    background: var(--ink-deep);
+    border-bottom: 1px solid var(--line);
+    padding: 10px 28px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+  }
+  .provenance-status__word { color: var(--depth); text-transform: uppercase; letter-spacing: 0.08em; }
+  .provenance-status__text { color: var(--shell-dim); }
+</style>
 </head>
 <body>
-  <!-- HONESTY CLAIM (unmissable) -->
-  <div class="honesty-banner">
-    <strong>⚠️ DETERMINISTIC SIMULATION – NO LLM IN THE LOOP</strong>
-    <p>Every word, every button label, every response is pre‑written, not generated. This is not a real product and no hardware exists.</p>
-  </div>
 
-  <!-- KIMI_COPY_PLACEHOLDER: Main landing text goes here. Replace this block with the final copy from LANDING_COPY_kimi.md when available. -->
-  <section class="landing-copy-placeholder">
-    <h1>Welcome to cocapn.com Phase 1</h1>
-    <p>This is a placeholder for the actual landing‑page copy that kimi is writing in parallel. Once the markdown file exists, paste its content here verbatim.</p>
+<div class="provenance-status">
+  <span class="provenance-status__word">Simulation</span>
+  <span class="provenance-status__text">Deterministic Phase 1 prototypes — designed, not built. No LLM is in the path, no hardware is connected, and the vessel they describe is unbuilt.</span>
+</div>
+
+<main class="wrap">
+
+  <section class="hero">
+    <p class="eyebrow">cocapn.com · Phase 1</p>
+    <h1>The boat as hermit crab.</h1>
+    <p class="hero-sub">cocapn is a Phase 1 sketch of a voice-first vessel: the captain speaks, the boat decides how to answer, and the same voice can move to a different hull later. Nothing below is built yet; every response is pre-written so you can see exactly how the machine would behave.</p>
+    <img class="hero-image" src="/images/hero.png" alt="A dim wheelhouse view through the windshield of a small fishing boat at dusk, helm wheel in silhouette, a single warm instrument light glowing on the dash." />
   </section>
 
-  <nav>
-    <h2>Demos</h2>
-    <ul>
-      <li><a href="/command-loop/">Command &amp; Confirm Helm FSM</a> – A deterministic state machine demonstrating “port ten / belay that” command‑and‑confirm workflow. No AI.</li>
-      <li><a href="/provisioning/">Deck‑Lights / Engine‑Room Capability Provisioning</a> – A deterministic decision tree for provisioning ship capabilities. No AI.</li>
-    </ul>
-  </nav>
+  <section class="honesty-block">
+    <p class="eyebrow">Why this is trustworthy</p>
+    <p>This is a deterministic simulation. Every word cocapn says, every button label, and every response you read was written by a human before you opened the page. No large language model is generating replies in real time. No physical boat exists. No captain has used this on the water. The honesty is not a caveat — it is the point. We are showing you the behavior of a designed machine so you can check it, not dressing up a plausible guess.</p>
+  </section>
+
+  <section class="demos">
+    <p class="eyebrow">Two demos</p>
+    <div class="demo-list">
+
+      <div class="demo-entry">
+        <p class="kicker">Command-and-confirm loop — port ten, belay that</p>
+        <h3>Command &amp; Confirm Helm FSM</h3>
+        <p>This demo is a five-state, thirteen-transition state machine running in your browser. The "realism" is in the timing and safety mechanics: a 500 millisecond trim pulse, a ten-second physical-override lockout, and a closed command grammar. It does not control anything. It shows how a deterministic helm might handle an order, a cancellation, a request for confirmation, and a human taking back the wheel.</p>
+        <a class="enter" href="/command-loop/">Enter the command loop →</a>
+      </div>
+
+      <div class="demo-entry">
+        <p class="kicker">Capability provisioning — deck lights, engine room, fishery</p>
+        <h3>Deck-Lights / Engine-Room Provisioning</h3>
+        <p>This demo is a fixed decision tree, not a conversation. Every branch, every cocapn line, and every artifact you see was authored in advance. You click labeled choices; the tree plays back the node that was already written. It demonstrates how a captain might provision a capability before handing the helm back to the command loop.</p>
+        <a class="enter" href="/provisioning/">Enter the provisioning tree →</a>
+      </div>
+
+    </div>
+  </section>
+
+  <p class="closing">This is Phase 1: a sketch, hardened at purplepincher only if it proves out. The pattern this org already uses — build the smallest checkable thing here, then carry the real version forward — is exactly what you're looking at. Both demos are deterministic: the command loop is a closed-grammar state machine, the provisioning walkthrough is a fixed decision tree. Nothing is generated in response to what you click or type.</p>
+
+</main>
 </body>
 </html>
