@@ -68,7 +68,14 @@
   }
   .demo-entry a.enter:hover { border-color: var(--depth); color: var(--depth); }
 
-  .closing { margin: 64px 0 80px; padding-top: 28px; border-top: 1px solid var(--line); color: var(--shell-dim); font-size: 0.95rem; max-width: 62ch; }
+  .closing { margin: 64px 0 24px; padding-top: 28px; border-top: 1px solid var(--line); color: var(--shell-dim); font-size: 0.95rem; max-width: 62ch; }
+
+  .verify-links { margin: 0 0 80px; }
+  .verify-links .eyebrow { margin-bottom: 14px; }
+  .verify-links ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .verify-links a { font-family: var(--mono); font-size: 0.88rem; color: var(--lattice); text-decoration: none; border-bottom: 1px solid transparent; }
+  .verify-links a:hover { border-color: var(--lattice); }
+  .verify-links .desc { color: var(--shell-dim); font-size: 0.85rem; margin-left: 4px; }
 
   .provenance-status {
     position: sticky; top: 0; z-index: 10;
@@ -112,20 +119,29 @@
         <p class="kicker">Command-and-confirm loop — port ten, belay that</p>
         <h3>Command &amp; Confirm Helm FSM</h3>
         <p>This demo is a five-state, thirteen-transition state machine running in your browser. The "realism" is in the timing and safety mechanics: a 500 millisecond trim pulse, a ten-second physical-override lockout, and a closed command grammar. It does not control anything. It shows how a deterministic helm might handle an order, a cancellation, a request for confirmation, and a human taking back the wheel.</p>
-        <a class="enter" href="/command-loop/">Enter the command loop →</a>
+        <a class="enter" href="/command-loop/">Try it: say "port ten" and watch what happens →</a>
       </div>
 
       <div class="demo-entry">
         <p class="kicker">Capability provisioning — deck lights, engine room, fishery</p>
         <h3>Deck-Lights / Engine-Room Provisioning</h3>
         <p>This demo is a fixed decision tree, not a conversation. Every branch, every cocapn line, and every artifact you see was authored in advance. You click labeled choices; the tree plays back the node that was already written. It demonstrates how a captain might provision a capability before handing the helm back to the command loop.</p>
-        <a class="enter" href="/provisioning/">Enter the provisioning tree →</a>
+        <a class="enter" href="/provisioning/">Try it: turn on the deck lights →</a>
       </div>
 
     </div>
   </section>
 
   <p class="closing">This is Phase 1: a sketch, hardened at purplepincher only if it proves out. The pattern this org already uses — build the smallest checkable thing here, then carry the real version forward — is exactly what you're looking at. Both demos are deterministic: the command loop is a closed-grammar state machine, the provisioning walkthrough is a fixed decision tree. Nothing is generated in response to what you click or type.</p>
+
+  <section class="verify-links">
+    <p class="eyebrow">Go check it yourself</p>
+    <ul>
+      <li><a href="https://cocapn.ai">cocapn.ai</a><span class="desc">— the math underneath both demos: deterministic multi-agent coordination as geometry, live and explained.</span></li>
+      <li><a href="https://github.com/purplepincher/cocapn-phase1-state-machine">github.com/purplepincher/cocapn-phase1-state-machine</a><span class="desc">— the real source for the command-and-confirm demo, including the seven judgment calls made while building it.</span></li>
+      <li><a href="https://github.com/purplepincher/cocapn-phase1-provisioning">github.com/purplepincher/cocapn-phase1-provisioning</a><span class="desc">— the real source for the provisioning-tree demo.</span></li>
+    </ul>
+  </section>
 
 </main>
 </body>
