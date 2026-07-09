@@ -29,5 +29,26 @@ The JavaScript state machine (`state‑machine.js`) and the provisioning node tr
 
 ### Locally
 
-Because the site is pure static HTML/CSS/JS, you can serve it with any HTTP server:
+Because the site is pure static HTML/CSS/JS, you can serve it with any HTTP
+server. The canonical way is the Worker itself (it serves `./public` via
+[Workers static assets](https://developers.cloudflare.com/workers/static-assets/)):
+
+```bash
+npx wrangler dev      # http://localhost:8787
+```
+
+The command-loop demo loads `state-machine.js` as a classic `<script>` (not an
+ES module) on purpose, so `public/index.html` also opens directly in a browser
+from `file://` with no server at all.
+
+### Deploy
+
+```bash
+npx wrangler deploy
+```
+
+This publishes the Worker bound to the `cocapn.com` zone. There is no build
+step and no test suite — `src/index.ts` is a five-line asset passthrough, and
+verification today is the live demos themselves plus the source links on the
+landing page.
 
