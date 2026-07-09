@@ -1,0 +1,16 @@
+
+## Provisioning tree
+
+`provisioning‑tree.js` defines a tree of **nodes** that represent steps in a configuration wizard for ship lighting (e.g. “deck red”, “deck white”, “lights off”). Each node has:
+
+- A `label` for display.
+- Zero or more `choices`, each with a `target` – either another node id, or a special **control target** (`TARGET.START`, `TARGET.INTEGRATION_COMMAND`, `TARGET.INTEGRATION_IDLE`).
+
+The control targets are not regular nodes; instead, the UI renderer (not included in this repository) is expected to use them to jump back to the top‑level scene picker or to integrate with the command‑loop state machine.
+
+This design was chosen to:
+
+- Keep the provisioning flow declarative – add or remove steps by editing the tree data, not the rendering code.
+- Make the tree easy to inspect, test, and version‑control.
+
+The tree is deliberately incomplete: there is no code path for persisting the chosen settings; it is a wire‑frame for UI prototyping.

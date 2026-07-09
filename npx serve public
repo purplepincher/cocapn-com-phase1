@@ -1,0 +1,7 @@
+
+Then open `http://localhost:3000/command-loop/` for the command demo, or `http://localhost:3000/provisioning/` for the setup UI.
+
+### On Cloudflare Workers
+
+The `wrangler.jsonc` config points to a Workers environment that serves the `public/` directory via `env.ASSETS.fetch`. To deploy:
+
